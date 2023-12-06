@@ -123,7 +123,7 @@ def error_plots():
     plt.show()
 
 
-if __name__ == '__main__':
+def error_plot():
     s = np.linspace(0.1, 0.95, 86)
     mis = []
     k = 0
@@ -144,3 +144,5 @@ if __name__ == '__main__':
     plt.ylabel('Error-Minimizing $0.5R_{min}$')
     plt.show()
 
+
+general_approximation(0, 10, 0.1, 300, 0.05, -20, 20, 0.01)
