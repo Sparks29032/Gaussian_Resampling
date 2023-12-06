@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy
 
 
 def matrix(r, s, o, n):
@@ -46,7 +47,7 @@ def coefficients(r, s, o, n):
         A.append(row)
     return np.linalg.solve(A, b)
 
-def general_approximation(u, fwhm_target, fwhm_approximator, n, r, r_min, r_max, dr):
+def general_approximation(u, fwhm_target, fwhm_approximator, n, r, r_min, r_max, dr, plot=True):
     def gaussian(x, u, s):
         N = 1 / (s * np.sqrt(2 * np.pi))
         exp = np.e ** (-(x - u) ** 2 / (2 * s ** 2))
@@ -76,23 +77,70 @@ def general_approximation(u, fwhm_target, fwhm_approximator, n, r, r_min, r_max,
         g_components[i] = c * a[i] * unit_gaussian(x, u + i * r, s)
         g_components[-i] = c * a[i] * unit_gaussian(x, u - i * r, s)
 
-    for g_component in g_components:
-        plt.plot(x, g_component, color='k', linestyle=':')
     g_approx = sum(g_components)
-
-    plt.plot(x, g_approx, color='b')
-
-    sep = 5
-    plt.scatter(x[::sep], g_target[::sep], color='r', s=5)
-
     error = g_approx - g_target
-    plt.plot(x, error, color='r')
 
-    plt.show()
+    if plot:
+        for g_component in g_components:
+            plt.plot(x, g_component, color='k', linestyle=':')
+
+        plt.plot(x, g_approx, color='b')
+
+        sep = 5
+        plt.scatter(x[::sep], g_target[::sep], color='r', s=5)
+
+        plt.plot(x, error, color='r')
+
+        plt.show()
 
     return max(error), max(error/g_target)
 
 
-if __name__=='__main__':
-    abs_error, rel_error = general_approximation(0, 2, 1.8, 3, 0.3 * 2, -4, 4, 0.01)
-    print(abs_error * 100, rel_error * 100)
+def error_plots():
+    s = np.linspace(0.1, 0.9, 9)
+    fig = plt.figure(figsize=(9, 9))
+    axs = []
+    for i in range(9):
+        axs.append(fig.add_subplot(3, 3, i + 1))
+
+    k = 0
+    for si in s:
+        r = np.linspace(0.1, 1, 300)
+        errors = []
+        for ri in r:
+            abs_error, rel_error = general_approximation(0, 1, si, 2, ri, -4, 4, 0.01, plot=False)
+            errors.append(rel_error)
+        errors = np.array(errors)
+        min_idx = r[errors == min(errors)][0]
+        axs[k].plot(r, errors)
+        mi = axs[k].axvline(min_idx, linestyle='--', color='k', label=f'$0.{int(min_idx * 1000)}$')
+        axs[k].set_title(f'$f_p/f_a = 0.{int(si * 10)}$')
+        axs[k].set_xlabel('$0.5 R_{min}$')
+        axs[k].set_ylabel('Relative Error (%)')
+        axs[k].legend(handles=[mi], loc='upper left')
+        k += 1
+    fig.tight_layout()
+    plt.show()
+
+
+if __name__ == '__main__':
+    s = np.linspace(0.1, 0.95, 86)
+    mis = []
+    k = 0
+    for si in s:
+        r = np.linspace(0.1, 1, 300)
+        errors = []
+        for ri in r:
+            abs_error, rel_error = general_approximation(0, 1, si, 2, ri, -4, 4, 0.01, plot=False)
+            errors.append(rel_error)
+        errors = np.array(errors)
+        min_idx = r[errors == min(errors)][0]
+        mis.append(min_idx)
+        k += 1
+    params, cov = scipy.optimize.curve_fit(lambda x, a, loc, scale: scipy.stats.skewnorm.pdf(x=0.5-x, a=a, loc=loc, scale=scale), s, mis)
+    plt.scatter(s, mis, color='r', s=5)
+    plt.plot()
+    plt.xlabel(f'$f_p/f_a$')
+    plt.ylabel('Error-Minimizing $0.5R_{min}$')
+    plt.show()
+
