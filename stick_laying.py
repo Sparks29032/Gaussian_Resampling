@@ -50,6 +50,40 @@ def lay_sticks(u, fwhm_target, fwhm_approximator, n, r, r_min, r_max, dr, plot=T
         plt.legend(handles=[stks, cnvl, trgt])
         plt.show()
 
+    abs_err = g_convolve - g_target
+    rel_err = (g_convolve - g_target) / g_target
+
+    return abs(abs_err), abs(rel_err)
+
+
+def abs_err_min(FWHM_target, FWHM_approx, std, red=1, sticks=None):
+    """
+    Decides spacing based on where the absolute error between the two Gaussians is maximized.
+    Approximation accurate up to a user-specified number of standard deviations.
+
+    Parameters
+    ----------
+    FWHM_target: FWHM of target Gaussian
+    FWHM_approx: FWHM of Gaussians used to approximate the target
+    std: How many standard deviations of accuracy
+    red: Scale factor to reduce spacing by
+    sticks: Specify number of sticks to use
+    """
+
+    rmax = FWHM_target * 2
+    b = FWHM_target / (2 * np.sqrt(2 * np.log(2)))
+    a = FWHM_approx / (2 * np.sqrt(2 * np.log(2)))
+
+    d = (4 * np.log(b / a) * (a ** 2 * b ** 2) / (b ** 2 - a ** 2))**(1/2) / red
+    if sticks is None:
+        n = int(b * std / d)
+    else:
+        n = int((sticks - 1) / 2)
+    abs_err, rel_err = lay_sticks(0, FWHM_target, FWHM_approx, n, d, -rmax, rmax, 0.01, plot=True)
+
+    print(f"Sticks used: {2 * n + 1}")
+    print(f"Absolute error: {max(abs_err)}")
+    print(f"Relative error: {rel_err[np.argmax(abs_err)] * 100}%")
 
 if __name__ == '__main__':
-    lay_sticks(0, 1, 0.6, 3, 0.37, -2, 2, 0.01, plot=True)
+    abs_err_min(np.sqrt(10), 1, 3, red=1.2)

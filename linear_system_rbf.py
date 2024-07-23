@@ -143,6 +143,3 @@ def error_plot():
     plt.xlabel(f'$f_p/f_a$')
     plt.ylabel('Error-Minimizing $0.5R_{min}$')
     plt.show()
-
-
-general_approximation(0, 10, 0.1, 300, 0.05, -20, 20, 0.01)
